@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Local Summarizer Settings</title>
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Local Summarizer Settings</h1>
+        <p class="subtitle">Configure your LLM provider and analysis preferences</p>
+      </div>
+
+      <form id="settings-form">
+        <!-- Provider Selection -->
+        <div class="form-group">
+          <label for="provider">LLM Provider</label>
+          <select id="provider" required>
+            <optgroup label="Local">
+              <option value="ollama">Ollama</option>
+              <option value="lm-studio">LM Studio</option>
+            </optgroup>
+            <optgroup label="Cloud">
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Endpoint (for local providers) -->
+        <div class="form-group" id="endpoint-section" style="display: none">
+          <label for="endpoint">API Endpoint</label>
+          <input
+            type="url"
+            id="endpoint"
+            placeholder="http://localhost:11434/api/generate"
+          />
+          <small
+            >For Ollama: http://localhost:11434/api/generate<br />For LM
+            Studio: http://localhost:1234/v1/completions</small
+          >
+        </div>
+
+        <!-- API Key (for cloud providers) -->
+        <div class="form-group" id="api-key-section" style="display: none">
+          <label for="api-key">API Key</label>
+          <input
+            type="password"
+            id="api-key"
+            placeholder="Enter your API key"
+          />
+          <small>Your API key is stored locally and never shared.</small>
+        </div>
+
+        <!-- Model -->
+        <div class="form-group">
+          <label for="model">Model</label>
+          <input
+            type="text"
+            id="model"
+            placeholder="e.g., llama2, gpt-4, claude-2"
+            required
+          />
+        </div>
+
+        <!-- Temperature -->
+        <div class="form-group">
+          <label for="temperature"
+            >Temperature: <span id="temperature-value">0.7</span></label
+          >
+          <input
+            type="range"
+            id="temperature"
+            min="0"
+            max="1"
+            step="0.1"
+            value="0.7"
+          />
+          <small
+            >Lower = more deterministic, Higher = more creative (0.0 - 1.0)</small
+          >
+        </div>
+
+        <!-- Include Images -->
+        <div class="form-group checkbox">
+          <label for="include-images">
+            <input type="checkbox" id="include-images" />
+            Include images in analysis
+          </label>
+          <small
+            >When enabled, images will be extracted and analyzed along with
+            text.</small
+          >
+        </div>
+
+        <!-- Test Button -->
+        <div class="form-group" id="test-section" style="display: none">
+          <button type="button" id="test-btn" class="test-btn">
+            Test Connection
+          </button>
+        </div>
+
+        <!-- Status -->
+        <div id="status" class="status"></div>
+
+        <!-- Save Button -->
+        <button type="button" id="save-btn" class="save-btn">Save Settings</button>
+      </form>
+
+      <div class="help-section">
+        <h3>Getting Started</h3>
+        <ul>
+          <li><strong>Local Setup:</strong> Install Ollama or LM Studio and start a local server</li>
+          <li><strong>Cloud Setup:</strong> Get an API key from OpenAI or Anthropic and paste it here</li>
+          <li><strong>Temperature:</strong> Controls output randomness. Use 0.1-0.3 for factual summaries</li>
+          <li><strong>Images:</strong> Toggle to include or exclude images from analysis</li>
+        </ul>
+      </div>
+    </div>
+
+    <script type="module" src="options.ts"></script>
+  </body>
+</html>
