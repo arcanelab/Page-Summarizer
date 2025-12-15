@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "description": "Analyze websites with local and cloud LLMs",
   "icons": {
-    "16": "icons/icon-16.png",
-    "48": "icons/icon-48.png",
-    "128": "icons/icon-128.png"
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
   },
   "permissions": ["storage", "activeTab", "scripting"],
   "optional_permissions": [
@@ -16,16 +16,28 @@
     "https://api.anthropic.com/*"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "scripts": ["background.js"],
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Analyze this page"
+    "default_title": "Analyze this page",
+    "default_icon": {
+      "16": "icons/icon.svg",
+      "32": "icons/icon.svg",
+      "48": "icons/icon.svg"
+    }
   },
   "options_ui": {
     "page": "options.html",
     "browser_style": false
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["results.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],

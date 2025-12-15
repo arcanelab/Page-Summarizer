@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import { resolve } from 'path'
-import fs from 'fs'
 
 export default defineConfig({
   build: {
@@ -12,6 +11,7 @@ export default defineConfig({
         content: resolve(__dirname, 'src/content/index.ts'),
         popup: resolve(__dirname, 'src/popup/popup.html'),
         options: resolve(__dirname, 'src/options/options.html'),
+        results: resolve(__dirname, 'src/results/results.html'),
       },
       output: {
         entryFileNames: '[name].js',
@@ -24,5 +24,8 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
     },
+  },
+  server: {
+    port: 5173,
   },
 })

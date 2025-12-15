@@ -1,0 +1,136 @@
+/**
+ * Results page - displays analysis results in a dedicated window
+ */
+
+import { AnalysisResult } from '@/shared/types'
+
+const statusSection = document.getElementById('status-section')!
+const resultSection = document.getElementById('result-section')!
+const errorSection = document.getElementById('error-section')!
+const statusText = document.getElementById('status-text')!
+const resultContent = document.getElementById('result-content')!
+const resultProvider = document.getElementById('result-provider')!
+const errorText = document.getElementById('error-text')!
+const closeBtn = document.getElementById('close-btn')!
+const copyBtn = document.getElementById('copy-btn')!
+const retryBtn = document.getElementById('retry-btn')!
+
+let currentResult: AnalysisResult | null = null
+let currentError: string | null = null
+
+const port = chrome.runtime.connect({ name: 'results-window' })
+
+function getCurrentWindow(): Promise<chrome.windows.Window> {
+  return new Promise((resolve) => chrome.windows.getCurrent(resolve))
+}
+
+async function registerWindow() {
+  try {
+    const currentWindow = await getCurrentWindow()
+    console.log('Current window object:', currentWindow)
+    if (!currentWindow.id) {
+      throw new Error('Could not determine window ID')
+    }
+
+    port.postMessage({ type: 'register', windowId: currentWindow.id })
+    console.log('Results page registered with background, windowId:', currentWindow.id)
+  } catch (error) {
+    console.error('Failed to register results window:', error)
+    showError('Could not connect to background process. Please close and try again.')
+  }
+}
+
+registerWindow()
+
+// Close window
+closeBtn.addEventListener('click', () => {
+  window.close()
+})
+
+// Copy result to clipboard
+copyBtn.addEventListener('click', async () => {
+  if (currentResult) {
+    try {
+      await navigator.clipboard.writeText(currentResult.analysis)
+      copyBtn.textContent = 'Copied!'
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy'
+      }, 2000)
+    } catch (error) {
+      console.error('Failed to copy:', error)
+    }
+  }
+})
+
+// Retry button
+retryBtn.addEventListener('click', () => {
+  getCurrentWindow().then((currentWindow) => {
+    if (currentWindow.id) {
+      port.postMessage({ type: 'retry', windowId: currentWindow.id })
+    }
+  })
+})
+
+// Update status
+function setStatus(text: string) {
+  statusText.textContent = text
+}
+
+// Show result
+function showResult(result: AnalysisResult) {
+  currentResult = result
+  statusSection.style.display = 'none'
+  errorSection.style.display = 'none'
+  resultSection.style.display = 'block'
+
+  resultProvider.textContent = `${result.provider.toUpperCase()} • ${result.model}`
+  resultContent.textContent = result.analysis
+}
+
+// Show error
+function showError(error: string) {
+  currentError = error
+  statusSection.style.display = 'none'
+  resultSection.style.display = 'none'
+  errorSection.style.display = 'block'
+  errorText.textContent = error
+}
+
+// Listen for messages from background script via port
+port.onMessage.addListener((request) => {
+  if (request.action === 'ping') {
+    // Respond to keep-alive ping if needed, or just ignore
+    return
+  }
+  if (request.action === 'updateStatus') {
+    setStatus(request.status)
+  } else if (request.action === 'result') {
+    const result = request.result as AnalysisResult
+    showResult(result)
+  } else if (request.action === 'error') {
+    const error = request.error as string
+    showError(error)
+  }
+})
+
+// Keep-alive heartbeat
+const heartbeatInterval = setInterval(() => {
+  try {
+    port.postMessage({ type: 'ping' })
+  } catch (e) {
+    console.error('Failed to send heartbeat:', e)
+    clearInterval(heartbeatInterval)
+  }
+}, 5000)
+
+port.onDisconnect.addListener(() => {
+  clearInterval(heartbeatInterval)
+  if (chrome.runtime.lastError) {
+    console.error('Port disconnected due to error:', chrome.runtime.lastError)
+  }
+  if (!currentResult && !currentError) {
+    showError('Results window disconnected. Please try analyzing again.')
+  }
+})
+
+console.log('Results page loaded')

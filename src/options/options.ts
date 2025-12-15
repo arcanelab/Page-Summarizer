@@ -99,22 +99,50 @@ document.addEventListener('DOMContentLoaded', async () => {
       const endpoint = (newConfig as any).endpoint
 
       if (newConfig.type === 'ollama' || newConfig.type === 'lm-studio') {
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            model: newConfig.model,
-            prompt: testPrompt,
-            stream: false,
-          }),
-        })
+        // Detect if endpoint is chat or completions
+        const isChat = endpoint.includes('chat/completions')
+        
+        const requestBody = isChat
+          ? {
+              model: newConfig.model,
+              messages: [{ role: 'user', content: testPrompt }],
+              temperature: newConfig.temperature,
+              stream: false,
+            }
+          : {
+              model: newConfig.model,
+              prompt: testPrompt,
+              stream: false,
+              temperature: newConfig.temperature,
+            }
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`)
+        // Create abort controller with 30-second timeout for testing
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
+
+        try {
+          const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+          })
+
+          clearTimeout(timeoutId)
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+          }
+
+          statusDiv.textContent = '✓ Connection successful!'
+          statusDiv.className = 'status success'
+        } catch (error) {
+          clearTimeout(timeoutId)
+          if (error instanceof Error && error.name === 'AbortError') {
+            throw new Error('Request timed out (30 seconds). Model may be slow.')
+          }
+          throw error
         }
-
-        statusDiv.textContent = '✓ Connection successful!'
-        statusDiv.className = 'status success'
       } else {
         statusDiv.textContent = 'Cloud providers must be tested with valid API key'
         statusDiv.className = 'status info'

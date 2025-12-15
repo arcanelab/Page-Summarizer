@@ -6,6 +6,8 @@ import { messaging } from '@/shared/browser-api'
 import { PageContent, AnalysisMessage, ResultMessage, ErrorMessage } from '@/shared/types'
 import { extractImages, extractMainContent, sanitizeText, truncateText } from '@/shared/utils'
 
+console.log('Content script: Loading...')
+
 // Listen for messages from popup or background
 chrome.runtime.onMessage.addListener(
   (
@@ -13,15 +15,36 @@ chrome.runtime.onMessage.addListener(
     sender,
     sendResponse
   ) => {
+    console.log('Content script: Received message:', request.action)
+    
     if (request.action === 'getPageContent') {
-      sendResponse(getPageContent())
+      try {
+        console.log('Content script: Extracting page content...')
+        const content = getPageContent()
+        console.log('Content script: Extracted content, text length:', content.text.length, 'images:', content.images.length)
+        sendResponse(content)
+      } catch (error) {
+        console.error('Content script: Error getting page content:', error)
+        sendResponse({ error: error instanceof Error ? error.message : String(error) })
+      }
+      return true // Keep the message channel open for async response
     } else if (request.action === 'result') {
       displayResult(request as ResultMessage)
+      sendResponse({ status: 'ok' })
+      return true
     } else if (request.action === 'error') {
       displayError(request as ErrorMessage)
+      sendResponse({ status: 'ok' })
+      return true
+    } else {
+      console.warn('Content script: Unknown action:', request.action)
+      sendResponse({ error: 'Unknown action' })
+      return true
     }
   }
 )
+
+console.log('Content script: Message listener registered')
 
 function getPageContent(): PageContent {
   // Extract main text content

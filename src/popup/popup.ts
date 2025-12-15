@@ -22,70 +22,43 @@ document.addEventListener('DOMContentLoaded', () => {
 async function handleAnalyze() {
   const analyzeBtn = document.getElementById('analyze-btn') as HTMLButtonElement
   const statusDiv = document.getElementById('status') as HTMLDivElement
-  const resultDiv = document.getElementById('result') as HTMLDivElement
 
   analyzeBtn.disabled = true
   analyzeBtn.textContent = 'Analyzing...'
-  statusDiv.textContent = 'Extracting page content...'
-  resultDiv.innerHTML = ''
+  statusDiv.textContent = 'Starting analysis...'
 
   try {
     // Get current tab
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true })
+    console.log('Popup: Found tabs:', tabs.length, tabs[0])
+    
     if (!tabs[0]?.id) throw new Error('Could not identify current tab')
 
     const tabId = tabs[0].id
+    console.log('Popup: Requesting analysis for tab', tabId)
 
-    // Request page content from content script
-    const pageContent = await chrome.tabs.sendMessage(tabId, { action: 'getPageContent' })
-
-    statusDiv.textContent = 'Sending to LLM...'
-
-    // Send analysis request to background script
-    const result = await chrome.runtime.sendMessage({
-      action: 'analyzePage',
-      content: pageContent,
+    // Send analyze request to background - it will handle window creation and content extraction
+    await chrome.runtime.sendMessage({
+      action: 'analyzePageWithWindow',
+      tabId: tabId,
     })
-
-    if (result.action === 'error') {
-      throw new Error(result.error)
-    }
-
-    // Display result
-    displayResult(result)
+    
+    console.log('Popup: Analysis request sent to background')
+    
+    // Close popup after a short delay
+    setTimeout(() => {
+      window.close()
+    }, 100)
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
+    console.error('Popup: Analysis error:', errorMsg)
+    const statusDiv = document.getElementById('status') as HTMLDivElement
     statusDiv.textContent = `Error: ${errorMsg}`
     statusDiv.style.color = '#ef4444'
   } finally {
     analyzeBtn.disabled = false
     analyzeBtn.textContent = 'Analyze Page'
   }
-}
-
-function displayResult(message: any) {
-  const resultDiv = document.getElementById('result') as HTMLDivElement
-  const statusDiv = document.getElementById('status') as HTMLDivElement
-
-  if (message.action === 'error') {
-    statusDiv.textContent = `Error: ${message.error}`
-    statusDiv.style.color = '#ef4444'
-    return
-  }
-
-  const result = message.result
-  resultDiv.innerHTML = `
-    <div style="margin-top: 12px; padding: 12px; background-color: #f3f4f6; border-radius: 6px;">
-      <div style="font-size: 12px; color: #6b7280; margin-bottom: 8px;">
-        ${result.provider.toUpperCase()} • ${result.model}
-      </div>
-      <div style="font-size: 13px; line-height: 1.5; color: #1f2937;">
-        ${escapeHtml(result.analysis)}
-      </div>
-    </div>
-  `
-  statusDiv.textContent = 'Done!'
-  statusDiv.style.color = '#059669'
 }
 
 async function loadSettings() {

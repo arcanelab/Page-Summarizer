@@ -28,3 +28,4 @@ dist-chrome
 *.crx
 *.xpi
 web-ext-artifacts
+firefox-profile/

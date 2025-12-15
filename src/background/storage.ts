@@ -6,9 +6,9 @@ import { storage } from '@/shared/browser-api'
 import { LLMConfig, AnalysisSettings } from '@/shared/types'
 
 const DEFAULT_LLM_CONFIG: LLMConfig = {
-  type: 'ollama',
-  endpoint: 'http://localhost:11434/api/generate',
-  model: 'llama2',
+  type: 'lm-studio',
+  endpoint: 'http://localhost:1234/v1/chat/completions',
+  model: 'zai-org/glm-4.6v-flash',
   temperature: 0.7,
 } as any
 

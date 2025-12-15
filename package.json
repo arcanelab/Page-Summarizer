@@ -10,7 +10,7 @@
     "build:chrome": "vite build --config vite.config.ts && node scripts/build-manifest.js chrome",
     "preview": "vite preview",
     "lint": "web-ext lint -s dist-firefox",
-    "firefox": "web-ext run -s dist-firefox",
+    "firefox": "web-ext run -s dist-firefox --start-url about:blank --firefox-profile=./firefox-profile --keep-profile-changes --browser-console",
     "firefox:build": "npm run build:firefox && web-ext build -s dist-firefox"
   },
   "devDependencies": {
