@@ -10,11 +10,16 @@
   },
   "permissions": ["storage", "activeTab", "scripting"],
   "optional_permissions": [
-    "http://localhost/*",
-    "http://127.0.0.1/*",
-    "https://api.openai.com/*",
-    "https://api.anthropic.com/*"
+    "http://*/*",
+    "https://*/*"
   ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  },
   "background": {
     "scripts": ["background.js"],
     "type": "module"

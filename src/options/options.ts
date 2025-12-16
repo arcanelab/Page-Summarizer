@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const saveBtn = document.getElementById('save-btn') as HTMLButtonElement
   const testBtn = document.getElementById('test-btn') as HTMLButtonElement
   const statusDiv = document.getElementById('status') as HTMLDivElement
+  const buildVersionSpan = document.getElementById('build-version') as HTMLSpanElement
+
+  // Set build version
+  const buildDate = new Date().toISOString().replace('T', ' ').substring(0, 19)
+  buildVersionSpan.textContent = buildDate
 
   // Load current settings
   const config = await getLLMConfig()
@@ -97,6 +102,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const testPrompt = 'Hello, this is a test. Please respond briefly.'
       const endpoint = (newConfig as any).endpoint
+
+      // Request permission for the endpoint origin if it's a local provider
+      if (endpoint && (providerSelect.value === 'ollama' || providerSelect.value === 'lm-studio')) {
+        try {
+          const url = new URL(endpoint)
+          // Firefox requires exact origin match for permissions.request
+          // For http://192.168.0.79:1234/v1/completions, we need http://192.168.0.79:1234/*
+          const origin = `${url.protocol}//${url.hostname}${url.port ? ':' + url.port : ''}/*`
+          console.log('Requesting permission for origin:', origin)
+          
+          // Check if we already have permission
+          const hasPermission = await chrome.permissions.contains({ origins: [origin] })
+          if (!hasPermission) {
+            // In Firefox, permissions.request must be called from a user action handler
+            // This is already inside a click handler, so it should work.
+            // However, if it fails, we can try to proceed without it if host_permissions covers it.
+            try {
+              const granted = await chrome.permissions.request({ origins: [origin] })
+              if (granted) {
+                console.log('Permission granted for', origin)
+              } else {
+                console.warn('Permission denied for', origin)
+                // Don't throw, maybe host_permissions covers it
+              }
+            } catch (reqErr) {
+              console.warn('Error requesting permission:', reqErr)
+            }
+          } else {
+            console.log('Permission already granted for', origin)
+          }
+        } catch (e) {
+          console.warn('Failed to check/request permission:', e)
+        }
+      }
 
       if (newConfig.type === 'ollama' || newConfig.type === 'lm-studio') {
         // Detect if endpoint is chat or completions

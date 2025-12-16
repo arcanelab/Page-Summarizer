@@ -10,10 +10,8 @@
   },
   "permissions": ["storage", "activeTab", "scripting", "windows"],
   "host_permissions": [
-    "http://localhost/*",
-    "http://127.0.0.1/*",
-    "https://api.openai.com/*",
-    "https://api.anthropic.com/*"
+    "http://*/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js",
