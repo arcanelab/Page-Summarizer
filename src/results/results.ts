@@ -3,6 +3,7 @@
  */
 
 import { AnalysisResult } from '@/shared/types'
+import { marked } from 'marked'
 
 const statusSection = document.getElementById('status-section')!
 const resultSection = document.getElementById('result-section')!
@@ -84,7 +85,7 @@ function showResult(result: AnalysisResult) {
   resultSection.style.display = 'block'
 
   resultProvider.textContent = `${result.provider.toUpperCase()} • ${result.model}`
-  resultContent.textContent = result.analysis
+  resultContent.innerHTML = marked.parse(result.analysis) as string
 }
 
 // Show error
