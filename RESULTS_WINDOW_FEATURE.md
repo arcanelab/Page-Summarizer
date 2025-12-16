@@ -57,27 +57,37 @@ A new **dedicated results window** that opens when you click "Analyze Page". The
 1. User clicks "Analyze Page"
 2. Popup creates a new browser window with results.html
 3. Popup immediately closes
-4. Results window shows "Extracting page content..."
-5. Background script extracts the page text/images
-6. Results window updates to "Sending to LLM server..."
-7. Background script calls LLM API
-8. Results window displays the analysis with provider info
+4. Results window loads and establishes a **persistent port connection** to the background script
+5. Results window shows "Extracting page content..."
+6. Background script extracts the page text/images
+7. Results window updates to "Sending to LLM server..."
+8. Background script calls LLM API
+9. Results window displays the analysis with provider info
 
-### Message Flow:
+### Message Flow (Port-Based):
 ```
 Popup (popup.ts)
   ↓ Opens window with results.html
-  ↓ Sends analysis request with window ID
-  ↓
-Background (index.ts)
-  ↓ Sends "updateStatus" messages
-  ↓ Sends "result" or "error" message
+  ↓ Sends analysis request and returns immediately
   ↓
 Results Window (results.ts)
-  ↓ Receives messages
+  ↓ Connects to background via chrome.runtime.connect()
+  ↓ Sends "register" message with windowId
+  ↓ Sends periodic "ping" messages (every 5 seconds)
+  ↓
+Background (index.ts)
+  ↓ Receives port connection
+  ↓ Registers port and flushes queued messages
+  ↓ Sends "updateStatus", "result", or "error" via port.postMessage()
+  ↓
+Results Window (results.ts)
+  ↓ port.onMessage listener receives messages
   ↓ Updates UI accordingly
   ↓ Displays result/error
 ```
+
+### Keep-Alive Mechanism:
+To prevent Firefox from terminating the background script during long LLM operations, the results window sends a "ping" message every 5 seconds. This keeps the background script active and ensures the connection doesn't get severed.
 
 ## Testing
 
@@ -130,9 +140,18 @@ You'll see logs in the background script console (about:debugging):
 
 - **Window size**: 700×600 pixels
 - **Window type**: Popup (floating window)
-- **Status updates**: Sent via `chrome.runtime.sendMessage()`
+- **Communication**: Port-based messaging via `chrome.runtime.connect()`
+  - More reliable than one-off messages
+  - Survives popup/tab reloads
+  - Allows bidirectional communication
+- **Keep-Alive**: Results window sends "ping" every 5 seconds
+  - Prevents Firefox from terminating background script
+  - Critical for long LLM operations (can take 1-5 minutes)
 - **Results format**: Preserves formatting with `white-space: pre-wrap`
-- **Timeout**: Still 60 seconds for LLM analysis
-- **Permissions**: Added `windows` to both Firefox and Chrome manifests
+- **Timeout**: 120 seconds for LLM analysis (increased from default)
+- **Permissions**: 
+  - Added `windows` for creating popup windows
+  - Modified manifest to use `scripts` instead of `background.page` for Firefox MV3 compatibility
+  - Added results.html to `web_accessible_resources`
 
 The extension is now fully rebuilt and ready to test with the new results window feature!

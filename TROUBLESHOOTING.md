@@ -188,6 +188,39 @@ Right-click extension → Options → F12 → Console
 - [ ] Simple webpage (not special page) is open
 - [ ] No errors in background script console (about:debugging → Inspect)
 
+## Issue: "Results window disconnected" error
+
+This error occurs when the results window's port connection to the background script is lost.
+
+### Causes & Solutions:
+
+**Cause 1: Background script was terminated**
+- Firefox can terminate "idle" background scripts
+- Fixed by heartbeat mechanism (ping every 5 seconds)
+- **Solution**: Reload extension in `about:debugging` and try again
+
+**Cause 2: Port connection not registered properly**
+- Results window fails to register with background script
+- **Check**:
+  1. Open background script console (about:debugging → Inspect)
+  2. Look for: `[LLM] Results window registered:` message
+  3. If missing, the port didn't register
+- **Solution**: Ensure manifest has correct background configuration
+
+**Cause 3: LLM analysis took too long (>120 seconds)**
+- Background script timeout was exceeded
+- **Solution**: Try a faster model or simpler content
+
+**Debugging Steps:**
+1. Open background script console: `about:debugging` → Local Summarizer → Inspect
+2. Look for `[LLM]` prefixed logs
+3. Check for these messages in order:
+   - `Results window port connected`
+   - `Results window registered: [windowId]`
+   - `Response status: 200`
+   - `Success! Analysis length:` or error message
+4. If registration is missing, check Firefox error logs
+
 ## Still Stuck?
 
 Collect this information:
@@ -195,9 +228,10 @@ Collect this information:
 ```
 1. Full endpoint URL you're using
 2. Model name in LM Studio
-3. Error message from popup
+3. Error message from popup/results window
 4. All console messages (background, content, popup)
 5. Result of: curl http://localhost:1234/api/status
+6. Logs from background script console showing [LLM] messages
 ```
 
-Then check the [Architecture document](./ARCHITECTURE.md) for how the message flow works.
+Then check the [Architecture document](./ARCHITECTURE.md) for detailed message flow and [Results Window Feature](./RESULTS_WINDOW_FEATURE.md) for port-based messaging details.

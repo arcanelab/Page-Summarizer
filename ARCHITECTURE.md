@@ -13,13 +13,28 @@ User Interaction:
 ┌─────────────────────────────────────────────────────────────┐
 │  1. User clicks extension icon → Popup.tsx opens            │
 │  2. User clicks "Analyze Page" button                       │
+│  3. Results window opens, popup closes                      │
 └──────────────────────────┬──────────────────────────────────┘
                            │
-            ┌──────────────▼──────────────┐
-            │  popup.ts sends message:    │
-            │  "getPageContent" to        │
-            │  content script             │
-            └──────────────┬──────────────┘
+        ┌──────────────────▼──────────────────┐
+        │  results.ts (NEW WINDOW)            │
+        │  1. Connects to background via port │
+        │  2. Sends "register" with windowId │
+        │  3. Sends "ping" every 5 seconds   │
+        │     (keeps background alive)        │
+        └──────────────────┬──────────────────┘
+                           │
+        ┌──────────────────▼──────────────────┐
+        │  popup.ts sends to background:      │
+        │  "analyzePageWithWindow"            │
+        │  Returns immediately (async)        │
+        └──────────────────┬──────────────────┘
+                           │
+        ┌──────────────────▼──────────────────┐
+        │  background/index.ts                │
+        │  1. Creates results window          │
+        │  2. Sends "updateStatus" via port  │
+        └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
         │  content/index.ts (on web page)     │
@@ -29,16 +44,9 @@ User Interaction:
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │  popup.ts receives content,         │
-        │  sends to background:               │
-        │  "analyzePage" action               │
-        └──────────────────┬──────────────────┘
-                           │
-        ┌──────────────────▼──────────────────┐
-        │  background/index.ts                │
-        │  1. Gets LLM config from storage    │
-        │  2. Creates LLMService instance     │
-        │  3. Calls service.analyze()         │
+        │  background receives content        │
+        │  Sends "updateStatus" → LLM...     │
+        │  via results window port            │
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
@@ -47,6 +55,7 @@ User Interaction:
         │  - analyzeLocal() → Ollama/LM       │
         │  - analyzeOpenAI() → OpenAI API     │
         │  - analyzeAnthropic() → Anthropic   │
+        │  (Heartbeat ping keeps connection)  │
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
@@ -55,10 +64,23 @@ User Interaction:
         └──────────────────┬──────────────────┘
                            │
         ┌──────────────────▼──────────────────┐
-        │  Result sent back to popup          │
-        │  displayed to user                  │
+        │  background sends result via port   │
+        │  to results window                  │
+        └──────────────────┬──────────────────┘
+                           │
+        ┌──────────────────▼──────────────────┐
+        │  results.ts receives message        │
+        │  Updates UI with analysis result    │
         └──────────────────────────────────────┘
 ```
+
+### Key Improvement: Port-Based Messaging
+
+The extension uses **persistent port connections** (`chrome.runtime.connect()`) instead of one-off messages:
+- **Reliability**: Survives background script idle termination
+- **Bidirectional**: Background can send multiple updates before completion
+- **Status Updates**: Real-time progress shown in results window
+- **Keep-Alive**: Results window sends "ping" every 5 seconds to keep background script active
 
 ## Directory Structure Deep Dive
 
@@ -69,10 +91,18 @@ User Interaction:
 #### `index.ts` - Main Background Script
 - Listens for extension lifecycle events (`onInstalled`)
 - Routes incoming messages from content/popup scripts
-- Handles `analyzePage` action:
+- Maintains `resultPorts` map for results window connections
+- Queues messages for results windows that haven't connected yet
+- Handles `analyzePageWithWindow` action:
+  - Creates results window via `chrome.windows.create()`
+  - Returns immediately (async operation)
   - Retrieves LLM config
   - Creates LLMService instance
-  - Calls analyze() and returns results
+  - Calls analyze() and sends results via port
+- Listens for port connections from results windows:
+  - `port.onConnect`: Registers new results window
+  - `port.onMessage`: Handles register/ping messages
+  - `port.onDisconnect`: Cleans up port from map
 - Listens for storage changes
 
 #### `llm-service.ts` - LLM Provider Adapters
@@ -121,9 +151,32 @@ Exported Functions:
 }
 ```
 
+### `/src/results/` (NEW)
+
+**Responsible for:** Dedicated window for displaying analysis results
+
+#### `results.html`
+- Clean UI with status, result, and error sections
+- Shows loading spinner during analysis
+- Displays provider and model info
+- Copy and retry buttons
+
+#### `results.ts`
+- Establishes port connection to background script
+- Sends windowId for registration
+- Sends periodic ping messages (every 5 seconds) as keep-alive
+- Listens for status/result/error messages via port
+- Updates UI based on message type
+- Handles copy-to-clipboard and retry functionality
+
+#### `results.css`
+- Purple gradient header
+- Smooth animations and transitions
+- Responsive scrollable content area
+
 ### `/src/content/`
 
-**Responsible for:** Page content extraction, displaying results to user
+**Responsible for:** Page content extraction
 
 #### `index.ts` - Content Script
 Runs on every page in an isolated context. Key functions:
@@ -162,8 +215,8 @@ displayError(): Shows error notification
 │  link: "Settings"       │
 ├─────────────────────────┤
 │ [Analyze Page] button   │
-│ Status: "Analyzing..."  │
-│ Result: <display area>  │
+│ Status: "Opening..."    │
+│ (Results in new window) │
 └─────────────────────────┘
 ```
 
@@ -173,11 +226,13 @@ Flow:
 1. DOMContentLoaded → loadSettings()
 2. User clicks "Analyze Page"
 3. Get active tab via chrome.tabs.query()
-4. Send "getPageContent" to content script
-5. Receive PageContent
-6. Send "analyzePage" to background
-7. Background sends back result
-8. Display in popup
+4. Send "analyzePageWithWindow" to background
+   (includes tabId for content extraction)
+5. Background creates results window
+6. Results window port connects to background
+7. Background processes analysis
+8. Results sent to results window via port
+9. Popup closes (analysis continues in results window)
 ```
 
 #### `popup.css`

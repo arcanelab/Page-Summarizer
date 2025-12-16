@@ -123,18 +123,30 @@ User Interaction
    - Handles LLM requests
    - Manages configuration
    - Routes messages between popup and content script
+   - Maintains port connections to results windows
+   - Sends status updates and results via ports
 
-3. **LLM Service** (`src/background/llm-service.ts`)
+3. **Results Window** (`src/results/`) **[NEW]**
+   - Dedicated popup window for displaying analysis
+   - Establishes persistent port connection to background
+   - Sends heartbeat "ping" messages every 5 seconds
+   - Receives status updates and results in real-time
+   - Shows loading, success, and error states
+   - Provides copy and retry functionality
+
+4. **LLM Service** (`src/background/llm-service.ts`)
    - Adapter pattern for multiple providers
    - Handles API communication
    - Formats requests/responses
+   - 120-second timeout for long-running models
 
-4. **Popup UI** (`src/popup/`)
+5. **Popup UI** (`src/popup/`)
    - User clicks "Analyze Page"
-   - Displays results
+   - Opens results window
+   - Immediately closes popup
    - Quick settings link
 
-5. **Options Page** (`src/options/`)
+6. **Options Page** (`src/options/`)
    - Configure LLM provider
    - Set API keys/endpoints
    - Toggle image analysis
@@ -217,10 +229,13 @@ Settings are stored in browser's `storage.local`:
 ### Immediate (No Code Changes)
 1. ✅ Load extension in Firefox or Chrome
 2. ✅ Configure with Ollama or LM Studio
-3. ✅ Analyze websites with local LLMs
+3. ✅ Analyze websites with local LLMs (results in dedicated window)
 4. ✅ Use cloud providers (OpenAI, Anthropic)
-5. ✅ Toggle image inclusion
-6. ✅ Adjust temperature for different analysis styles
+5. ✅ See real-time status updates during analysis
+6. ✅ Copy results to clipboard with one click
+7. ✅ Toggle image inclusion
+8. ✅ Adjust temperature for different analysis styles
+9. ✅ Test connection to local LLM servers
 
 ### Next Steps (With Code)
 1. Add new LLM providers in `src/background/llm-service.ts`
@@ -263,11 +278,15 @@ Generated extension is lightweight:
 
 ## ✨ Key Technologies
 
-- **TypeScript** - Type safety
+- **TypeScript** - Type safety throughout
 - **Vite** - Lightning-fast build tool
 - **Native Web APIs** - No framework bloat
 - **Browser Extension APIs** - Direct browser integration
+  - Port-based messaging for reliable communication
+  - Window management for dedicated results window
+  - Content scripts for page extraction
 - **Async/Await** - Clean async code
+- **Heartbeat Pattern** - Keep-alive mechanism for background script
 
 ## 🎓 Learning Resources
 
