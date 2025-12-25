@@ -4,8 +4,6 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const analyzeBtn = document.getElementById('analyze-btn') as HTMLButtonElement
-  const statusDiv = document.getElementById('status') as HTMLDivElement
-  const resultDiv = document.getElementById('result') as HTMLDivElement
   const settingsLink = document.getElementById('settings-link') as HTMLAnchorElement
 
   analyzeBtn.addEventListener('click', handleAnalyze)
@@ -21,11 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function handleAnalyze() {
   const analyzeBtn = document.getElementById('analyze-btn') as HTMLButtonElement
-  const statusDiv = document.getElementById('status') as HTMLDivElement
 
   analyzeBtn.disabled = true
-  analyzeBtn.textContent = 'Analyzing...'
-  statusDiv.textContent = 'Starting analysis...'
+  analyzeBtn.textContent = 'Summarizing...'
 
   try {
     // Get current tab
@@ -52,12 +48,10 @@ async function handleAnalyze() {
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
     console.error('Popup: Analysis error:', errorMsg)
-    const statusDiv = document.getElementById('status') as HTMLDivElement
-    statusDiv.textContent = `Error: ${errorMsg}`
-    statusDiv.style.color = '#ef4444'
+    alert(`Error: ${errorMsg}`)
   } finally {
     analyzeBtn.disabled = false
-    analyzeBtn.textContent = 'Analyze Page'
+    analyzeBtn.textContent = 'Summarize Page'
   }
 }
 
@@ -69,10 +63,4 @@ async function loadSettings() {
   } catch (error) {
     console.error('Failed to load settings:', error)
   }
-}
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div')
-  div.textContent = text
-  return div.innerHTML
 }

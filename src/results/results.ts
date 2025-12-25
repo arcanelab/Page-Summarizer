@@ -12,7 +12,6 @@ const statusText = document.getElementById('status-text')!
 const resultContent = document.getElementById('result-content')!
 const resultProvider = document.getElementById('result-provider')!
 const errorText = document.getElementById('error-text')!
-const closeBtn = document.getElementById('close-btn')!
 const copyBtn = document.getElementById('copy-btn')!
 const retryBtn = document.getElementById('retry-btn')!
 
@@ -43,19 +42,16 @@ async function registerWindow() {
 
 registerWindow()
 
-// Close window
-closeBtn.addEventListener('click', () => {
-  window.close()
-})
-
 // Copy result to clipboard
 copyBtn.addEventListener('click', async () => {
   if (currentResult) {
     try {
       await navigator.clipboard.writeText(currentResult.analysis)
       copyBtn.textContent = 'Copied!'
+      copyBtn.classList.add('success')
       setTimeout(() => {
         copyBtn.textContent = 'Copy'
+        copyBtn.classList.remove('success')
       }, 2000)
     } catch (error) {
       console.error('Failed to copy:', error)

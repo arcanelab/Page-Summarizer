@@ -8,7 +8,7 @@ import { LLMConfig, AnalysisSettings } from '@/shared/types'
 const DEFAULT_LLM_CONFIG: LLMConfig = {
   type: 'lm-studio',
   endpoint: 'http://localhost:1234/v1/chat/completions',
-  model: 'zai-org/glm-4.6v-flash',
+  model: 'google/gemma-3-1b',
   temperature: 0.7,
 } as any
 
