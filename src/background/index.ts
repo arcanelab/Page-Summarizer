@@ -10,7 +10,7 @@ import {
   PageContent,
   ExtensionMessage,
 } from '@/shared/types'
-import { getLLMConfig, getIncludeImages, initializeDefaultSettings } from './storage'
+import { getLLMConfig, getIncludeImages, initializeDefaultSettings, getPromptTemplate } from './storage'
 import { createLLMService } from './llm-service'
 
 const resultPorts = new Map<number, chrome.runtime.Port>()
@@ -187,10 +187,18 @@ async function handleAnalyzeWithWindow(
     })
 
     const config = await getLLMConfig()
+    const includeImages = await getIncludeImages()
+    
+    // Filter images if not enabled
+    if (!includeImages && pageContent) {
+      pageContent.images = []
+    }
+
     console.log('[LLM] LLM Config:', config.type, config.model)
     
     const service = createLLMService(config)
-    const result = await service.analyze(pageContent)
+    const promptTemplate = await getPromptTemplate()
+    const result = await service.analyze(pageContent, promptTemplate, includeImages)
 
     console.log(`[LLM] Success! Analysis length: ${result.analysis.length} chars`)
 
@@ -240,6 +248,13 @@ async function handleAnalyzeRequest(
     })
 
     const config = await getLLMConfig()
+    const includeImages = await getIncludeImages()
+
+    // Filter images if not enabled
+    if (!includeImages && content) {
+      content.images = []
+    }
+
     console.log('[LLM] LLM Config:', JSON.stringify(config, null, 2))
     
     const service = createLLMService(config)
@@ -254,7 +269,9 @@ async function handleAnalyzeRequest(
       status: 'Sending to LLM server...',
     })
 
-    const result = await service.analyze(content)
+    const promptTemplate = await getPromptTemplate()
+
+    const result = await service.analyze(content, promptTemplate, includeImages)
 
     const response: ResultMessage = {
       action: 'result',
@@ -298,11 +315,13 @@ async function handleGetSettings() {
   try {
     const config = await getLLMConfig()
     const includeImages = await getIncludeImages()
+    const promptTemplate = await getPromptTemplate()
 
     return {
       provider: config.type,
       model: (config as any).model,
       includeImages,
+      promptTemplate,
     }
   } catch (error) {
     console.error('Failed to get settings:', error)

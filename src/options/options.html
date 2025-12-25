@@ -94,6 +94,18 @@
           >
         </div>
 
+        <!-- Prompt Template -->
+        <div class="form-group">
+          <label for="prompt-template">Prompt Template</label>
+          <textarea id="prompt-template" rows="6" placeholder="Use {{text}} and {{imagesCount}} placeholders"></textarea>
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button type="button" id="restore-default-prompt" class="btn">Restore Default</button>
+            <button type="button" id="preview-prompt-btn" class="btn">Preview</button>
+          </div>
+          <pre id="prompt-preview" style="white-space:pre-wrap;margin-top:8px;background:#f7f7f7;padding:8px;border-radius:4px;display:none;"></pre>
+          <small>Use <code>{{text}}</code> for page text and <code>{{imagesCount}}</code> for number of images.</small>
+        </div>
+
         <!-- Test Button -->
         <div class="form-group" id="test-section" style="display: none">
           <button type="button" id="test-btn" class="test-btn">

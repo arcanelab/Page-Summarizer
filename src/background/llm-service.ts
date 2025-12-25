@@ -13,19 +13,19 @@ export interface LLMResponse {
 export class LLMService {
   constructor(private config: LLMConfig) {}
 
-  async analyze(content: PageContent): Promise<LLMResponse> {
+  async analyze(content: PageContent, promptTemplate?: string, includeImages?: boolean): Promise<LLMResponse> {
     if (this.config.type === 'ollama' || this.config.type === 'lm-studio') {
-      return this.analyzeLocal(content)
+      return this.analyzeLocal(content, promptTemplate, includeImages)
     } else if (this.config.type === 'openai') {
-      return this.analyzeOpenAI(content)
+      return this.analyzeOpenAI(content, promptTemplate, includeImages)
     } else if (this.config.type === 'anthropic') {
-      return this.analyzeAnthropic(content)
+      return this.analyzeAnthropic(content, promptTemplate, includeImages)
     }
 
     throw new Error(`Unknown LLM provider: ${this.config.type}`)
   }
 
-  private async analyzeLocal(content: PageContent): Promise<LLMResponse> {
+  private async analyzeLocal(content: PageContent, promptTemplate?: string, includeImages?: boolean): Promise<LLMResponse> {
     const config = this.config as any
     const endpoint = config.endpoint
 
@@ -33,7 +33,7 @@ export class LLMService {
       throw new Error('Local LLM endpoint not configured')
     }
 
-    const prompt = this.buildPrompt(content)
+    const prompt = this.buildPrompt(content, promptTemplate, includeImages)
 
     try {
       console.log(`[LLM] Sending request to ${endpoint}`)
@@ -129,7 +129,7 @@ export class LLMService {
     }
   }
 
-  private async analyzeOpenAI(content: PageContent): Promise<LLMResponse> {
+  private async analyzeOpenAI(content: PageContent, promptTemplate?: string, includeImages?: boolean): Promise<LLMResponse> {
     const config = this.config as any
     const apiKey = config.apiKey
 
@@ -145,7 +145,7 @@ export class LLMService {
       },
       {
         role: 'user' as const,
-        content: this.buildPrompt(content),
+        content: this.buildPrompt(content, promptTemplate, includeImages),
       },
     ]
 
@@ -186,7 +186,7 @@ export class LLMService {
     }
   }
 
-  private async analyzeAnthropic(content: PageContent): Promise<LLMResponse> {
+  private async analyzeAnthropic(content: PageContent, promptTemplate?: string, includeImages?: boolean): Promise<LLMResponse> {
     const config = this.config as any
     const apiKey = config.apiKey
 
@@ -194,7 +194,7 @@ export class LLMService {
       throw new Error('Anthropic API key not configured')
     }
 
-    const prompt = this.buildPrompt(content)
+    const prompt = this.buildPrompt(content, promptTemplate, includeImages)
 
     try {
       const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -239,16 +239,36 @@ export class LLMService {
     }
   }
 
-  private buildPrompt(content: PageContent): string {
-    let prompt = `Please analyze and summarize the following web page content:\n\n${content.text}`
+  private buildPrompt(content: PageContent, template?: string, includeImages?: boolean): string {
+    if (!template) {
+      let prompt = `Please analyze and summarize the following web page content:\n\n${content.text}`
 
-    if (content.images.length > 0) {
-      prompt += `\n\nThe page also contains ${content.images.length} image(s). If they are relevant to the content analysis, please describe and analyze them.`
+      if (includeImages && content.images.length > 0) {
+        prompt += `\n\nThe page also contains ${content.images.length} image(s). If they are relevant to the content analysis, please describe and analyze them.`
+      }
+
+      prompt += '\n\nProvide a concise analysis highlighting the key points.'
+
+      return prompt
     }
 
-    prompt += '\n\nProvide a concise analysis highlighting the key points.'
+    // Simple template rendering: replace {{text}} and {{imagesCount}}
+    let output = template
+    try {
+      output = output.replace(/{{\s*text\s*}}/g, content.text)
+      output = output.replace(/{{\s*imagesCount\s*}}/g, String(content.images.length))
+    } catch (e) {
+      // If replacement fails for any reason, fall back to default prompt
+      console.warn('[LLM] Prompt template rendering failed, falling back to default prompt', e)
+      return this.buildPrompt(content, undefined, includeImages)
+    }
 
-    return prompt
+    // Automatically add image-related prompt if images are enabled but placeholder is missing
+    if (includeImages && content.images.length > 0 && !/{{\s*imagesCount\s*}}/.test(template)) {
+      output += `\n\nThe page also contains ${content.images.length} image(s). If they are relevant to the content analysis, please describe and analyze them.`
+    }
+
+    return output
   }
 }
 

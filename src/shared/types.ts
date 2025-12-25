@@ -25,6 +25,7 @@ export type LLMConfig = LocalLLMProvider | CloudLLMProvider
 export interface AnalysisSettings {
   includeImages: boolean
   provider: LLMConfig
+  promptTemplate?: string
 }
 
 export interface PageContent {

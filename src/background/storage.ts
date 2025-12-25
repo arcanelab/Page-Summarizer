@@ -17,6 +17,8 @@ const DEFAULT_ANALYSIS_SETTINGS: AnalysisSettings = {
   provider: DEFAULT_LLM_CONFIG,
 }
 
+export const DEFAULT_PROMPT = `Please analyze and summarize the following web page content:\n\n{{text}}\n\nThe page also contains {{imagesCount}} image(s). If they are relevant to the content analysis, please describe and analyze them.\n\nProvide a concise analysis highlighting the key points.`
+
 export async function getLLMConfig(): Promise<LLMConfig> {
   const result = await storage.get('llmConfig')
   return result.llmConfig || DEFAULT_LLM_CONFIG
@@ -26,12 +28,25 @@ export async function setLLMConfig(config: LLMConfig): Promise<void> {
   await storage.set({ llmConfig: config })
 }
 
+export async function getPromptTemplate(): Promise<string> {
+  const result = await storage.get('promptTemplate')
+  return result.promptTemplate ?? DEFAULT_PROMPT
+}
+
+export async function setPromptTemplate(template: string): Promise<void> {
+  await storage.set({ promptTemplate: template })
+}
+
 export async function getAnalysisSettings(): Promise<AnalysisSettings> {
   const result = await storage.get('analysisSettings')
   const config = await getLLMConfig()
+  const promptResult = await storage.get('promptTemplate')
+  const promptTemplate = promptResult.promptTemplate ?? DEFAULT_PROMPT
+
   return {
     ...(result.analysisSettings || DEFAULT_ANALYSIS_SETTINGS),
     provider: config,
+    promptTemplate,
   }
 }
 
@@ -72,5 +87,10 @@ export async function initializeDefaultSettings(): Promise<void> {
   if (!result.llmConfig) {
     await setLLMConfig(DEFAULT_LLM_CONFIG)
     await setAnalysisSettings(DEFAULT_ANALYSIS_SETTINGS)
+  }
+
+  const promptResult = await storage.get('promptTemplate')
+  if (!promptResult?.promptTemplate) {
+    await setPromptTemplate(DEFAULT_PROMPT)
   }
 }

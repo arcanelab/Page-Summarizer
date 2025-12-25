@@ -4,7 +4,7 @@
   "description": "Firefox & Chrome extension for analyzing websites with local and cloud LLMs",
   "type": "module",
   "scripts": {
-    "dev": "vite --watch",
+    "dev": "vite",
     "build": "npm run build:firefox && npm run build:chrome",
     "build:firefox": "vite build --config vite.config.ts && node scripts/build-manifest.js firefox",
     "build:chrome": "vite build --config vite.config.ts && node scripts/build-manifest.js chrome",

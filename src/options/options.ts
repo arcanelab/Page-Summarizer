@@ -2,7 +2,7 @@
  * Options page script - handles configuration UI
  */
 
-import { getLLMConfig, setLLMConfig, getIncludeImages, setIncludeImages } from '@/background/storage'
+import { getLLMConfig, setLLMConfig, getIncludeImages, setIncludeImages, getPromptTemplate, setPromptTemplate, DEFAULT_PROMPT } from '@/background/storage'
 import { LLMConfig } from '@/shared/types'
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -25,12 +25,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load current settings
   const config = await getLLMConfig()
   const includeImages = await getIncludeImages()
+  const promptTemplate = await getPromptTemplate()
+
+  const promptTextarea = document.getElementById('prompt-template') as HTMLTextAreaElement
+  const restorePromptBtn = document.getElementById('restore-default-prompt') as HTMLButtonElement
+  const previewPre = document.getElementById('prompt-preview') as HTMLPreElement
+  const previewBtn = document.getElementById('preview-prompt-btn') as HTMLButtonElement
 
   providerSelect.value = config.type
   modelInput.value = (config as any).model || 'llama2'
   temperatureInput.value = String(config.temperature || 0.7)
   temperatureValue.textContent = String(config.temperature || 0.7)
   includeImagesCheckbox.checked = includeImages
+  promptTextarea.value = promptTemplate
+  previewPre.textContent = promptTemplate
 
   if (config.type === 'ollama' || config.type === 'lm-studio') {
     endpointInput.value = (config as any).endpoint || 'http://localhost:11434/api/generate'
@@ -43,6 +51,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   updateProviderFields()
+
+  // Prompt textarea interactions
+  promptTextarea.addEventListener('input', () => {
+    previewPre.textContent = promptTextarea.value
+    previewPre.style.display = 'block'
+  })
+
+  restorePromptBtn.addEventListener('click', async () => {
+    promptTextarea.value = DEFAULT_PROMPT
+    previewPre.textContent = DEFAULT_PROMPT
+    previewPre.style.display = 'block'
+  })
+
+  previewBtn.addEventListener('click', () => {
+    if (previewPre.style.display === 'none' || previewPre.style.display === '') {
+      previewPre.style.display = 'block'
+    } else {
+      previewPre.style.display = 'none'
+    }
+  })
 
   // Event listeners
   providerSelect.addEventListener('change', updateProviderFields)
@@ -69,6 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       await setLLMConfig(newConfig)
       await setIncludeImages(includeImagesCheckbox.checked)
+      await setPromptTemplate(promptTextarea.value)
 
       statusDiv.textContent = '✓ Settings saved successfully'
       statusDiv.className = 'status success'
