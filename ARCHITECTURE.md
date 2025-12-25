@@ -11,7 +11,7 @@ This is a dual-platform browser extension (Firefox + Chrome) built with TypeScri
 ```
 User Interaction:
 ┌─────────────────────────────────────────────────────────────┐
-│  1. User clicks extension icon → Popup.tsx opens            │
+│  1. User clicks extension icon → popup.ts opens            │
 │  2. User clicks "Analyze Page" button                       │
 │  3. Results window opens, popup closes                      │
 └──────────────────────────┬──────────────────────────────────┘
@@ -146,7 +146,10 @@ Exported Functions:
     temperature: 0-1
   },
   analysisSettings: {
-    includeImages: boolean
+    includeImages: boolean,
+    // Maximum characters of page content to send to the LLM. Configurable via Options.
+    // Defaults to 8000 to preserve previous behavior and avoid overwhelming local models.
+    maxPageChars?: number
   }
 }
 ```
@@ -156,7 +159,7 @@ Exported Functions:
 **Responsible for:** Dedicated window for displaying analysis results
 
 #### `results.html`
-- Clean UI with status, result, and error sections
+- UI with status, result, and error sections
 - Shows loading spinner during analysis
 - Displays provider and model info
 - Copy and retry buttons
@@ -170,9 +173,7 @@ Exported Functions:
 - Handles copy-to-clipboard and retry functionality
 
 #### `results.css`
-- Purple gradient header
-- Smooth animations and transitions
-- Responsive scrollable content area
+- Header styling and responsive scrollable content area
 
 ### `/src/content/`
 
@@ -182,9 +183,10 @@ Exported Functions:
 Runs on every page in an isolated context. Key functions:
 
 ```typescript
-getPageContent(): PageContent
+getPageContent(maxLength = 8000): PageContent
+├── Fetches analysis settings from background (configurable `maxPageChars`)
 ├── Extracts main text via extractMainContent()
-├── Sanitizes and truncates (8000 chars max)
+├── Sanitizes and truncates (respecting configured `maxPageChars`, default 8000)
 └── Extracts images if enabled
 
 displayResult(): Shows notification on page
@@ -293,7 +295,7 @@ LLMConfig
 └── CloudLLMProvider { type, apiKey, model, temperature }
 
 PageContent
-├── text: string (8000 char max)
+├── text: string (truncated to configured `maxPageChars`, default 8000)
 └── images: string[] (URLs)
 
 AnalysisRequest
@@ -478,21 +480,3 @@ Optional (Firefox):
 Host (Chrome):
 - Same as optional permissions
 ```
-
-## Performance Considerations
-
-1. **Content Extraction**: Limited to 8000 characters to avoid overwhelming LLMs
-2. **Image Count**: Max 5 images to avoid excessive processing
-3. **Caching**: Could add analysis result caching (future feature)
-4. **Network**: All LLM requests are async, doesn't block UI
-
-## Future Enhancement Opportunities
-
-1. **Analysis History**: Store past analyses for review
-2. **Batch Processing**: Analyze multiple tabs
-3. **Custom Prompts**: User-defined analysis templates
-4. **Streaming Responses**: Show results as they arrive
-5. **Multi-language**: Analyze and translate content
-6. **Export**: Save analyses as PDF/Markdown
-7. **Browser Sync**: Sync settings across devices
-8. **Provider Rotation**: Fallback to secondary provider
