@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Local Summarizer",
+  "name": "Page Summarizer",
   "version": "0.1.0",
   "description": "Analyze websites with local and cloud LLMs",
   "icons": {

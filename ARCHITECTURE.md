@@ -213,7 +213,7 @@ displayError(): Shows error notification
 ```html
 ┌─────────────────────────┐
 │ header                  │
-│  h1: "Local Summarizer"  │
+│  h1: "Page Summarizer"  │
 │  link: "Settings"       │
 ├─────────────────────────┤
 │ [Analyze Page] button   │

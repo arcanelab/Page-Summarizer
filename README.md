@@ -1,7 +1,7 @@
 
-# Local Summarizer
+# Page Summarizer
 
-LocalSummarizer is a browser extension (Firefox and Chrome) that extracts page content and sends it to a configured LLM (local or cloud) for analysis.
+Page Summarizer is a browser extension (Firefox and Chrome) that extracts page content and sends it to a configured LLM (local or cloud) for analysis.
 
 ## Quick start
 
@@ -16,7 +16,7 @@ Load the produced `dist-firefox/manifest.json` (Firefox) or the `dist-chrome` fo
 
 ## Usage
 
-1. Open the extension popup and click "Analyze Page".
+1. Open the extension popup and click "Summarize Page".
 2. The extension extracts page text (and optionally images) and opens a results window that shows progress and the analysis output.
 
 ## Configuration
@@ -26,22 +26,10 @@ Open the Options page to set:
 - LLM provider (Ollama / LM Studio / OpenAI / Anthropic)
 - Endpoint or API key
 - Model and temperature
-- Include images (boolean)
-- Max page characters: truncation limit for extracted page text (default 8000). The Options page shows an estimated token count (heuristic: 1 token ≈ 4 characters).
+- Setting whether to include images
+- Max page characters: truncation limit for extracted page text (default 8000)..
 
 Settings are stored locally via the browser storage API.
-
-## Project structure
-
-```
-src/
-- background/     (background script, LLM adapters, storage)
-- content/        (content extraction script)
-- popup/          (popup UI)
-- results/        (results window UI)
-- options/        (settings UI)
-- shared/         (types, utils, browser abstraction)
-```
 
 ## Development
 
