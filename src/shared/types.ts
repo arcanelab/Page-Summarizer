@@ -26,6 +26,7 @@ export interface AnalysisSettings {
   includeImages: boolean
   provider: LLMConfig
   promptTemplate?: string
+  maxPageChars?: number
 }
 
 export interface PageContent {

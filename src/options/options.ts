@@ -3,6 +3,7 @@
  */
 
 import { getLLMConfig, setLLMConfig, getIncludeImages, setIncludeImages, getPromptTemplate, setPromptTemplate, DEFAULT_PROMPT } from '@/background/storage'
+import { getAnalysisSettings, setAnalysisSettings } from '@/background/storage'
 import { LLMConfig } from '@/shared/types'
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -13,6 +14,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const temperatureInput = document.getElementById('temperature') as HTMLInputElement
   const temperatureValue = document.getElementById('temperature-value') as HTMLSpanElement
   const includeImagesCheckbox = document.getElementById('include-images') as HTMLInputElement
+  const maxCharsInput = document.getElementById('max-chars') as HTMLInputElement
+  const tokenEstimate = document.getElementById('token-estimate') as HTMLElement
   const saveBtn = document.getElementById('save-btn') as HTMLButtonElement
   const testBtn = document.getElementById('test-btn') as HTMLButtonElement
   const statusDiv = document.getElementById('status') as HTMLDivElement
@@ -35,6 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const promptTextarea = document.getElementById('prompt-template') as HTMLTextAreaElement
   const restorePromptBtn = document.getElementById('restore-default-prompt') as HTMLButtonElement
+  const analysis = await getAnalysisSettings()
 
   providerSelect.value = config.type
   modelInput.value = (config as any).model || 'llama2'
@@ -43,7 +47,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   includeImagesCheckbox.checked = includeImages
   promptTextarea.value = promptTemplate
 
+  // Max chars & token estimate
+  const maxChars = analysis.maxPageChars ?? 8000
+  if (maxCharsInput) {
+    maxCharsInput.value = String(maxChars)
+    updateTokenEstimate(maxChars)
+    
+    maxCharsInput.addEventListener('input', () => {
+      const val = parseInt(maxCharsInput.value, 10) || 0
+      updateTokenEstimate(val)
+    })
+  }
+
   updateProviderFields()
+
+  function updateTokenEstimate(chars: number) {
+    if (!tokenEstimate) return
+    // Rough estimate: 1 token ~= 4 chars
+    const tokens = Math.ceil(chars / 4)
+    tokenEstimate.textContent = `~${tokens.toLocaleString()} tokens`
+  }
 
   // Prompt textarea interactions
   restorePromptBtn.addEventListener('click', async () => {
@@ -76,6 +99,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       await setLLMConfig(newConfig)
       await setIncludeImages(includeImagesCheckbox.checked)
       await setPromptTemplate(promptTextarea.value)
+      if (maxCharsInput) {
+        await setAnalysisSettings({ maxPageChars: Number(maxCharsInput.value) })
+      }
 
       statusDiv.textContent = '✓ Settings saved successfully'
       statusDiv.className = 'status success'
@@ -218,6 +244,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       endpointSection.style.display = 'none'
       apiKeySection.style.display = 'grid'
       testSection.style.display = 'none'
+    }
+  }
+
+  // simple token estimate helper (1 token ≈ 4 chars)
+  function estimateTokensFromChars(chars: number): number {
+    return Math.max(1, Math.ceil(chars / 4))
+  }
+
+  function updateTokenEstimate(chars: number) {
+    if (tokenEstimate) {
+      tokenEstimate.textContent = `Estimated tokens: ${estimateTokensFromChars(chars)}`
     }
   }
 })

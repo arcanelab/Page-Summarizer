@@ -18,15 +18,20 @@ chrome.runtime.onMessage.addListener(
     console.log('Content script: Received message:', request.action)
     
     if (request.action === 'getPageContent') {
-      try {
-        console.log('Content script: Extracting page content...')
-        const content = getPageContent()
-        console.log('Content script: Extracted content, text length:', content.text.length, 'images:', content.images.length)
-        sendResponse(content)
-      } catch (error) {
-        console.error('Content script: Error getting page content:', error)
-        sendResponse({ error: error instanceof Error ? error.message : String(error) })
-      }
+      // Fetch settings first to get the configured maxPageChars
+      ;(async () => {
+        try {
+          console.log('Content script: Extracting page content...')
+          const settings = await chrome.runtime.sendMessage({ action: 'getSettings' })
+          const maxLength = settings?.maxPageChars ? Number(settings.maxPageChars) : 8000
+          const content = getPageContent(maxLength)
+          console.log('Content script: Extracted content, text length:', content.text.length, 'images:', content.images.length)
+          sendResponse(content)
+        } catch (error) {
+          console.error('Content script: Error getting page content:', error)
+          sendResponse({ error: error instanceof Error ? error.message : String(error) })
+        }
+      })()
       return true // Keep the message channel open for async response
     } else if (request.action === 'result') {
       displayResult(request as ResultMessage)
@@ -46,13 +51,12 @@ chrome.runtime.onMessage.addListener(
 
 console.log('Content script: Message listener registered')
 
-function getPageContent(): PageContent {
+function getPageContent(maxLength = 8000): PageContent {
   // Extract main text content
   let text = extractMainContent()
   text = sanitizeText(text)
 
   // Limit text length to avoid overwhelming the LLM
-  const maxLength = 8000
   text = truncateText(text, maxLength)
 
   // Extract images

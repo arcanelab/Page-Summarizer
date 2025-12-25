@@ -15,6 +15,7 @@ const DEFAULT_LLM_CONFIG: LLMConfig = {
 const DEFAULT_ANALYSIS_SETTINGS: AnalysisSettings = {
   includeImages: false,
   provider: DEFAULT_LLM_CONFIG,
+  maxPageChars: 8000,
 }
 
 export const DEFAULT_PROMPT = `Please analyze and summarize the following web page content:\n\n{{text}}\n\nThe page also contains {{imagesCount}} image(s). If they are relevant to the content analysis, please describe and analyze them.\n\nProvide a concise analysis highlighting the key points.`

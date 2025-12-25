@@ -96,6 +96,14 @@
           >
         </div>
 
+        <!-- Max page characters / token estimate -->
+        <div class="form-group">
+          <label for="max-chars">Max page characters</label>
+          <input type="number" id="max-chars" min="1000" max="200000" step="100" />
+          <small id="token-estimate">Estimated tokens: —</small>
+          <small>Limits how many characters of the page are sent to the LLM.</small>
+        </div>
+
         <!-- Prompt Template -->
         <div class="form-group">
           <label for="prompt-template">Prompt Template</label>

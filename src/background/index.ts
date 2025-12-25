@@ -10,7 +10,7 @@ import {
   PageContent,
   ExtensionMessage,
 } from '@/shared/types'
-import { getLLMConfig, getIncludeImages, initializeDefaultSettings, getPromptTemplate } from './storage'
+import { getLLMConfig, getIncludeImages, getAnalysisSettings, initializeDefaultSettings, getPromptTemplate } from './storage'
 import { createLLMService } from './llm-service'
 
 const resultPorts = new Map<number, chrome.runtime.Port>()
@@ -314,14 +314,14 @@ async function handleAnalyzeRequest(
 async function handleGetSettings() {
   try {
     const config = await getLLMConfig()
-    const includeImages = await getIncludeImages()
-    const promptTemplate = await getPromptTemplate()
+    const analysis = await getAnalysisSettings()
 
     return {
       provider: config.type,
       model: (config as any).model,
-      includeImages,
-      promptTemplate,
+      includeImages: analysis.includeImages,
+      promptTemplate: analysis.promptTemplate,
+      maxPageChars: analysis.maxPageChars ?? 8000,
     }
   } catch (error) {
     console.error('Failed to get settings:', error)
