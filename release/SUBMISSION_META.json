@@ -1,0 +1,9 @@
+{
+  "name": "Page Summarizer",
+  "version": "0.1.0",
+  "summary": "Summarize websites with local and cloud LLMs",
+  "detailed_description": "Page Summarizer lets you extract and summarize web page content using local or cloud LLMs. Configure your provider in Options. See PRIVACY.md for details.",
+  "release_notes": "Rebranded to Page Summarizer; added configurable page truncation (default 8000 chars) and token estimate; security fixes and sanitizer improvements.",
+  "privacy_policy_file": "release/PRIVACY.md",
+  "artifact": "web-ext-artifacts/page_summarizer-0.1.0.zip"
+}

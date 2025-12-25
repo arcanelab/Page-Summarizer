@@ -81,7 +81,52 @@ function showResult(result: AnalysisResult) {
   resultSection.style.display = 'block'
 
   resultProvider.textContent = `${result.provider.toUpperCase()} • ${result.model}`
-  resultContent.innerHTML = marked.parse(result.analysis) as string
+  // Sanitize HTML produced by `marked` before inserting into the DOM
+  const rawHtml = marked.parse(result.analysis) as string
+  appendSanitizedHtml(resultContent, rawHtml)
+}
+// Parse HTML, remove unsafe elements/attributes, and append safe nodes to `container`.
+function appendSanitizedHtml(container: Element, html: string) {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+
+  const forbiddenTags = new Set(['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button'])
+
+  function sanitizeNode(node: Node) {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as HTMLElement
+      const tag = el.tagName.toLowerCase()
+      if (forbiddenTags.has(tag)) {
+        el.remove()
+        return
+      }
+
+      // Remove event handlers and javascript: URIs
+      Array.from(el.attributes).forEach((attr) => {
+        const name = attr.name.toLowerCase()
+        const value = attr.value || ''
+        if (name.startsWith('on')) {
+          el.removeAttribute(attr.name)
+        }
+        if ((name === 'href' || name === 'src') && value.trim().toLowerCase().startsWith('javascript:')) {
+          el.removeAttribute(attr.name)
+        }
+      })
+    }
+
+    // Recurse safely over a static copy of child nodes
+    Array.from(node.childNodes).forEach((child) => sanitizeNode(child))
+  }
+
+  // Clear existing content
+  while (container.firstChild) container.removeChild(container.firstChild)
+
+  // Import and sanitize children from parsed document
+  Array.from(doc.body.childNodes).forEach((child) => {
+    const imported = document.importNode(child, true)
+    sanitizeNode(imported)
+    container.appendChild(imported)
+  })
 }
 
 // Show error

@@ -122,7 +122,8 @@ function createNotificationElement(
     word-wrap: break-word;
   `
 
-  div.innerHTML = content
+  // Use textContent for notifications to avoid injecting HTML
+  div.textContent = content
 
   return div
 }
